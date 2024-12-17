@@ -5,39 +5,241 @@
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
+    <meta name="description" content="Tax Paying System with MetaMask" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
+    <title>MetaTax Connect</title>
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
+    <!-- Web3.js for MetaMask integration -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.6.1/web3.min.js"></script>
+
+    <style>
+       /* Container for the glitter text */
+       .glitter-text {
+            font-size: 3em; /* Adjust size as needed */
+            font-weight: bold;
+            background: linear-gradient(90deg, #ff9a9e, #fad0c4, #fbc2eb, #a18cd1, #fbc2eb, #ff9a9e);
+            background-size: 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glitter 3s infinite linear;
+            text-align: center;
+            margin: 20px;
+        }
+
+        /* Keyframes for glitter animation */
+        @keyframes glitter {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+      body {
+        background-image: url('https://thesun.my/binrepository/adib-rawi-lhdn-015_3348406_20230801111045.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f9f9f9;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      #root {
+        text-align: center;
+        background-color: #ffffff;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        padding: 20px;
+        width: 90%;
+        max-width: 400px;
+      }
+
+      h1, h2 {
+        color: #333333;
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-top: 10px;
+        color: #555555;
+        text-align: left;
+      }
+
+      input {
+        width: 100%;
+        padding: 10px;
+        margin-top: 5px;
+        margin-bottom: 15px;
+        border: 1px solid #cccccc;
+        border-radius: 5px;
+        font-size: 16px;
+      }
+
+      button {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-top: 10px;
+        width: 100%;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      #walletAddress, #calculatedTax {
+        margin: 15px 0;
+        color: #444444;
+        font-size: 14px;
+      }
+
+      #receiptSection {
+        margin-top: 20px;
+      }
+    </style>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
+    
+    <div id="root">
+       <h1 class="glitter-text">Welcome to MetaTax Connect: Your Data, Your Control</h1>
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+      <button id="loginButton">Login with MetaMask</button>
+      <div id="walletAddress"></div>
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+      <div id="taxForm" style="display: none;">
+        <h2>Enter Tax Details</h2>
+        <label for="income">Annual Income:</label>
+        <input type="number" id="income" placeholder="Enter your annual income" />
+
+        <label for="deduction">Tax Deduction:</label>
+        <input type="number" id="deduction" placeholder="Enter tax deductions" />
+
+        <button id="calculateTax">Calculate Tax</button>
+        <div id="calculatedTax"></div>
+        <button id="payTax" style="display: none;">Pay Tax</button>
+      </div>
+
+      <div id="receiptSection" style="display: none;">
+        <h2>Receipt</h2>
+        <button id="downloadReceipt">Download Tax Receipt</button>
+      </div>
+    </div>
+
+    <script>
+      let web3;
+      let userAccount;
+
+      // Check if MetaMask is available
+      if (window.ethereum) {
+        web3 = new Web3(window.ethereum);
+      } else {
+        alert("Please install MetaMask!");
+      }
+
+      // Handle MetaMask login
+      document.getElementById("loginButton").onclick = async () => {
+        try {
+          const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+          userAccount = accounts[0];
+          document.getElementById("walletAddress").innerText = `Connected Account: ${userAccount}`;
+          document.getElementById("loginButton").style.display = "none";
+          document.getElementById("taxForm").style.display = "block";
+        } catch (error) {
+          console.error("MetaMask login error:", error);
+        }
+      };
+
+      // Calculate Tax Function
+      document.getElementById("calculateTax").onclick = () => {
+        const income = parseFloat(document.getElementById("income").value);
+        const deduction = parseFloat(document.getElementById("deduction").value);
+        
+        if (!isNaN(income) && !isNaN(deduction)) {
+          const taxableIncome = income - deduction;
+          const tax = taxableIncome * 0.2; // Example: 20% tax
+          document.getElementById("calculatedTax").innerText = `Your Tax: $${tax.toFixed(2)}`;
+          document.getElementById("payTax").style.display = "block";
+          document.getElementById("payTax").onclick = () => payTax(tax);
+        } else {
+          alert("Please enter valid values for income and deduction.");
+        }
+      };
+
+      const payTax = async (amount) => {
+  try {
+    // Check if amount is valid
+    if (!amount || isNaN(amount)) {
+      alert("Invalid tax amount. Please try again.");
+      return;
+    }
+
+    // Convert amount to Ether (adjust precision as needed)
+    const etherAmount = web3.utils.toWei(amount.toString(), "ether");
+
+    // Define transaction parameters
+    const transactionParameters = {
+      to: "0x00Ba61446Ae3Bc84932156456746D06d7392509a", // Replace with a valid Ethereum address
+      from: userAccount,
+      value: web3.utils.toHex(etherAmount), // Convert Ether amount to hexadecimal
+    };
+
+    // Send transaction
+    const txHash = await ethereum.request({
+      method: "eth_sendTransaction",
+      params: [transactionParameters],
+    });
+
+    console.log("Transaction sent, hash:", txHash);
+
+    // Update UI after successful transaction
+    alert("Tax payment successful! Transaction Hash: " + txHash);
+    document.getElementById("payTax").style.display = "none";
+    document.getElementById("receiptSection").style.display = "block";
+  } catch (error) {
+    console.error("Payment error:", error);
+    alert("Payment failed. Please check your wallet and try again.");
+  }
+};
+
+
+      // Download Tax Receipt Function with Verification
+      document.getElementById("downloadReceipt").onclick = async () => {
+        try {
+          const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+          if (accounts[0] === userAccount) {
+            const receiptContent = `Tax Payment Receipt\nAccount: ${userAccount}\nAmount Paid: $${document.getElementById("calculatedTax").innerText.split(': $')[1]}`;
+            const blob = new Blob([receiptContent], { type: "text/plain" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "tax_receipt.txt";
+            link.click();
+          } else {
+            alert("Wallet verification failed. Please connect the correct wallet.");
+          }
+        } catch (error) {
+          console.error("Verification error:", error);
+        }
+      };
+    </script>
   </body>
 </html>
+
